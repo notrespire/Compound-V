@@ -667,7 +667,7 @@ class StackAccess():
 
         self.phandle = handle
         mem = MemAccess(handle)
-        print("[+] Inspecting Thread ID: 0x%x" % (threadid))
+        # print("[+] Inspecting Thread ID: 0x%x" % (threadid))
         h_thread = windll.kernel32.OpenThread(0x001F03FF, None, threadid)
         self.h_thread = h_thread
         tbi = THREAD_BASIC_INFORMATION()
