@@ -32,7 +32,7 @@ dodge_Mode = False
 crouch_Key = "ctrl"
 
 # Keybind to enable or disable Dodge Mode
-toggle_dodge_Mode = keycodes.PAGEDOWN
+toggle_dodge_Mode = keycodes.NUMPAD4
 
 # Keep Target will continue to aim at your target, even if they are occluded.
 toggle_keep_target = keycodes.NUMPAD7
@@ -47,10 +47,10 @@ toggle_autoshoot = keycodes.DELETE
 autoscope = True
 
 # Press this button to switch between normal aimbot and hunt
-hunt_Toggle = keycodes.NUMPAD8
+hunt_Toggle = keycodes.NUMPAD4
 
 # Press this and you have to input a name into the console to hunt. You don't need to write the exact name the program will try to find the name with the most matches.
-hunt_Target_Switch = keycodes.NUMPAD9
+hunt_Target_Switch = keycodes.NUMPAD4
 
 # Aim Location Options
 # Aim Location Switching (default is the first one listed)
@@ -59,7 +59,8 @@ aim_locations = [bones['Head'], bones['Spine'], bones['Neck']]
 
 # Randomly picks a aim_location from the above list
 # Best used with a small list of bones that are close to each other
-random_aim_location = False
+# You need to toggle this off, if you want to cycle through the list manually!
+random_aim_toggle = keycodes.PAGEDOWN
 
 # Key to switch aim location (set to None to disable)
 aim_switch = keycodes.PAGEUP
@@ -72,7 +73,7 @@ screensize = ctypes.windll.user32.GetSystemMetrics(0), ctypes.windll.user32.GetS
 # or
 #screensize = (1280, 960)
 
-collection = [fov, distance_limit, trigger, autoshoot, autoscope, aim_locations, aim_switch, screensize, hunt_Toggle, hunt_Target_Switch, dodge_Mode, crouch_Key, toggle_autoshoot, toggle_dodge_Mode, toggle_keep_target, random_aim_location]
+collection = [fov, distance_limit, trigger, autoshoot, autoscope, aim_locations, aim_switch, screensize, hunt_Toggle, hunt_Target_Switch, dodge_Mode, crouch_Key, toggle_autoshoot, toggle_dodge_Mode, toggle_keep_target, random_aim_toggle]
 
 #### END OF CHANGE OPTIONS ####
 
@@ -98,6 +99,6 @@ if __name__ == "__main__":
         console.print(e, style="red")
         exit(1)
 
-aimer = aimer.Aimer(collection)
-console.print(Text("[!] Using screensize: %s x %s" % screensize, style="bright_black"))
-aimer.start()
+    aimer = aimer.Aimer(collection)
+    console.print(Text("[!] Using screensize: %s x %s" % screensize, style="bright_black"))
+    aimer.start()
