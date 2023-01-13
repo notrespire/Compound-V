@@ -14,6 +14,7 @@ This project is a BFV aim-assist that implements the following features:
   - Check out a screenshot [here](https://prnt.sc/dy47vDOjuKUz)
 - Customizable Config/Keybinds
   - More Keycodes/Extra Keys
+  - [New] Random Bone Aim  
 - Faster, Snappier Aiming/Targeting Switching
 - Auto-Shoot 
   - Automatically shoot when holding Aim Key
