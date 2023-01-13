@@ -120,7 +120,7 @@ def GetEncKey(pHandle, typeinfo):
     keystore[typeinfo] = key
 
     api._cache_en = cache_en
-    print("[+] Typeinfo: 0x%x Encryption Key: 0x%x" % (typeinfo, keystore[typeinfo]), flush=True)
+    # print("[+] Typeinfo: 0x%x Encryption Key: 0x%x" % (typeinfo, keystore[typeinfo]), flush=True)
     return keystore[typeinfo]
 
 
