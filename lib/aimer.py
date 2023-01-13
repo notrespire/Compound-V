@@ -1,8 +1,3 @@
-from rich.console import Console
-from rich.text import Text
-from rich.live import Live
-from rich import print
-from modules.ui import layout_ui
 from lib import BFV
 from lib.bones import bones
 import time
@@ -14,15 +9,42 @@ import pydirectinput
 from threading import Thread
 from playsound import playsound
 import os
-import random
 import logging
+import random
+
+from rich.text import Text
+from rich import print
+from rich.layout import Layout
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.align import Align
+from rich import box
+
+console = Console()
+layout = Layout()
+debug = 1
+
+bannerText = """\
+      _____                                  __   _   __
+     / ___/__  __ _  ___  ___  __ _____  ___/ /__| | / /
+    / /__/ _ \/  ' \/ _ \/ _ \/ // / _ \/ _  /___/ |/ / 
+    \___/\___/_/_/_/ .__/\___/\_,_/_//_/\_,_/    |___/  
+                /_/         
+        """
+
+layout.split_column(
+    Layout(name="upper", ratio=2),
+    Layout(name="lower", ratio=5)
+)
+layout["upper"].update(
+    Align.center(
+        Panel.fit(bannerText, title="v1.1", subtitle="Created by survivalizeed. UI by notRespire", style="light_slate_grey", box=box.HORIZONTALS)
+    )
+)
 
 # Debug Log File, if needed
-# logging.basicConfig(filename='compoundv.log', encoding='utf-8', level=logging.DEBUG)
-
-# Create our Rich Console
-console = Console()
-debug = 1
+logging.basicConfig(filename='compoundv.log', encoding='utf-8', level=logging.DEBUG)
 
 class Aimer:
     tick = 0
@@ -51,8 +73,8 @@ class Aimer:
         self.toggle_autoshoot = collection[12]
         self.toggle_dodge_Mode = collection[13]
         self.toggle_keep_target = collection[14]
-        self.random_aim_location = collection[15]
-
+        self.random_aim_toggle = collection[15]
+        
     def DebugPrintMatrix(self, mat):
         print("[%.3f %.3f %.3f %.3f ]" % (mat[0][0], mat[0][1], mat[0][2], mat[0][3]))
         print("[%.3f %.3f %.3f %.3f ]" % (mat[1][0], mat[1][1], mat[1][2], mat[1][3]))
@@ -80,20 +102,21 @@ class Aimer:
         while True:
             if self.dodge:
                 pydirectinput.press(self.crouch_Key)
-            time.sleep(0.01)      
-
+            time.sleep(0.01)
+            
     def start(self):
         console.print(Text("[+] Searching for BFV.exe", style="blue"))
-        
+
         phandle = BFV.get_handle()
-        
+
         if phandle:
             console.print(Text("[!] BFV.exe found, Handle 0x%x" % phandle, style="green"))
+            console.print()
             time.sleep(1)
         else:
             console.print(Text("[X] Error: Cannot find BFV.exe", style="red"))
             exit(1)
-            
+
         cnt = 0
         # mouse = Controller()
         self.lastSoldier = 0
@@ -110,10 +133,8 @@ class Aimer:
                     aim_location_names.append(key)
                     
         # Set Aim Bone to current aim location
-        aim_bone = self.aim_locations[aim_location_index]
-        
-        # logging.debug(f"Aim Location Names:{aim_location_names}")
-        # logging.debug(f"Aim Bone Set:{aim_bone}")
+        aimBone = self.aim_locations[aim_location_index]
+        aimBoneName = aim_location_names[aim_location_index]
         
         # m = Mouse()
         pressedCounter = 0
@@ -123,136 +144,116 @@ class Aimer:
         keepTarget = False
         huntSoldier = None
         huntSoldierName = None
+        random_aim_bone = False
         mouse = Controller()
-
+    
         dodge = Thread(target=self.dodgeIt)
         dodge.start()
-    
-        # Create our Rich Live Output, and pass our Layout UI function to it
-        with Live(
-            layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, aim_location_names[aim_location_index]),
-            screen=True, console=console, redirect_stdout=True) as live:
-            
-            # Print our Layout UI
-            if self.random_aim_location:
-                console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, "Randomized"))
-            else:
-                console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, aim_location_names[aim_location_index]))
 
-            while 1:
-                # If Random Aim Location is Set
-                if self.random_aim_location:
-                    aim_bone = random.choice(self.aim_locations)
-                    time.sleep(0.01)
+        def genTable() -> layout:
+            table = Table(title="Options:", show_lines=True, expand=True, box=box.ROUNDED, style="bright_black")
+            table.add_column("Name", justify="left", style="bright_white", ratio=3),
+            table.add_column("Status", justify="center", style="bright_white", ratio=1)
+            table.add_row("AutoShoot", f'{"Enabled" if self.autoshoot else "Disabled"}', style=f'{"dark_green" if self.autoshoot else "dark_red"}'),
+            table.add_row("AutoScope", f'{"Enabled" if self.autoscope else "Disabled"}', style=f'{"dark_green" if self.autoscope else "dark_red"}'),
+            table.add_row("AutoDodge", f'{"Enabled" if self.dodgeMode else "Disabled"}', style=f'{"dark_green" if self.dodgeMode else "dark_red"}'),
+            table.add_row("KeepTarget", f'{"Enabled" if keepTarget else "Disabled"}', style=f'{"dark_green" if keepTarget else "dark_red"}'),
+            table.add_row("Hunt Mode", f'{huntSoldierName if huntMode else "Disabled"}', style=f'{"dark_green" if huntMode else "dark_red"}'),
+            table.add_row("FOV", f"{self.fov}", style="grey50")
+            table.add_row("Distance", f"{self.distance_limit}", style="grey50")
+            table.add_row("Bone", f'{"[bold dark_green]Random" if random_aim_bone else f"[bold bright_white]{aimBoneName}"}', end_section=True, style="grey50")
+            
+            layout["lower"].update(
+                Panel(table, style="light_slate_grey", box=box.ROUNDED)
+            )
+            
+            print(layout, end="\r", flush=True)
+        
+        with console.status("[!] Compound-V Loading", spinner="arc"):
+            time.sleep(3)
+            genTable()
+        
+        while 1:
+                #Generate Random Aim Bone from the existing Array
+                if random_aim_bone:
+                    aimBone = random.choice(self.aim_locations)
                 else:
+                    #change aim location index if key is pressed
                     if self.aim_switch:
                         if cdll.user32.GetAsyncKeyState(self.aim_switch) & 0x8000:
                             aim_switch_pressed = True
+                            random_aim_bone = False
+                            aimBone = self.aim_locations[aim_location_index]
+                            aimBoneName = aim_location_names[aim_location_index]
+                            genTable()
                         elif aim_switch_pressed:
                             aim_switch_pressed = False
                             aim_location_index = aim_location_index + 1
                             if aim_location_index > aim_location_max:
                                 aim_location_index = 0
-                            aim_bone = self.aim_locations[aim_location_index]
-                            
-                            # Print our Layout UI
-                            if self.random_aim_location:
-                                console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, "Randomized"))
-                            else:
-                                console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, aim_location_names[aim_location_index]))
+                            aimBone = self.aim_locations[aim_location_index]
+                            aimBoneName = aim_location_names[aim_location_index]
+                            genTable()
 
-                            # logging.debug(f"AimLocationIndexFalse: {aim_location_names[aim_location_index]}")
-
-                # BFV.process(phandle, cnt, self.aim_locations[aim_location_index])
-                BFV.process(phandle, cnt, aim_bone)
-                # cnt += 1
-                # idk what this does, but it seems ok??
+                BFV.process(phandle, cnt, aimBone)
                 cnt += 9999
 
                 data = BFV.gamedata
                 self.closestDistance = 9999
-                # Smoothing? Closest Distance to crosshair? idk man
-                # self.closestDistance = 25
                 self.closestSoldier = None
                 self.closestSoldierMovementX = 0
                 self.closestSoldierMovementY = 0
+                
+                if cdll.user32.GetAsyncKeyState(self.random_aim_toggle) & 0x8000:
+                    random_aim_bone = not random_aim_bone
+                    if random_aim_bone:
+                        random_aim_bone = True
+                        Thread(target=playsound, args=(os.getcwd() + '/snd/activate.mp3',), daemon=True).start()
+                        genTable()
+                    else:
+                        random_aim_bone = False
+                        Thread(target=playsound, args=(os.getcwd() + './snd/deactivate.mp3',), daemon=True).start()
+                        genTable()
+                    time.sleep(0.3)
 
                 if cdll.user32.GetAsyncKeyState(self.toggle_keep_target) & 0x8000:
                     keepTarget = not keepTarget
                     if keepTarget:
-                        Thread(target=playsound, args=(os.getcwd() + '/snd/activate.mp3'), daemon=True).start()
-                        keepTarget = True
-                        
-                        # Print our Layout UI
-                        if self.random_aim_location:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, "Randomized"))
-                        else:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, aim_location_names[aim_location_index]))      
+                        Thread(target=playsound, args=(os.getcwd() + '/snd/activate.mp3',), daemon=True).start()
+                        genTable()
                     else:
-                        Thread(target=playsound, args=(os.getcwd() + './snd/deactivate.mp3'), daemon=True).start()
-                        keepTarget = False
-                        # Print our Layout UI
-                        if self.random_aim_location:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, "Randomized"))
-                        else:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, aim_location_names[aim_location_index]))      
+                        Thread(target=playsound, args=(os.getcwd() + './snd/deactivate.mp3',), daemon=True).start()
+                        genTable()
                     time.sleep(0.3)
 
                 if cdll.user32.GetAsyncKeyState(self.huntToggle) & 0x8000:
                     if not data.soldiers:
-                        # print("You are currently not in a round")
-                        # console.print(Text("[!] You are currently not in a round", style="bright_black"))
-                        # Print our Layout UI
-                        if self.random_aim_location:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, "Randomized"))
-                        else:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, aim_location_names[aim_location_index]))      
+                        console.print(Text("[X] You are currently not in a round", style="red"))
                     elif huntSoldier is None:
-                        # print("No Soldier to hunt chosen")
-                        # console.print(Text("[!] No Soldier to hunt chosen", style="bright_black"))
-                        # Print our Layout UI
-                        if self.random_aim_location:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, "Randomized"))
-                        else:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, aim_location_names[aim_location_index]))      
+                        console.print(Text("[X] No Soldier to hunt chosen"), style="red")
                     else:
                         huntMode = not huntMode
                         if huntMode:
                             self.distance_limit = None
                             Thread(target=playsound, args=(os.getcwd() + '/snd/activate.mp3',), daemon=True).start()
-                            # Print our Layout UI
-                            if self.random_aim_location:
-                                console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, "Randomized"))
-                            else:
-                                console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, aim_location_names[aim_location_index]))      
+                            genTable()
                         else:
                             self.distance_limit = self.collection[1]
                             Thread(target=playsound, args=(os.getcwd() + './snd/deactivate.mp3',), daemon=True).start()
-                            # Print our Layout UI
-                            if self.random_aim_location:
-                                console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, "Randomized"))
-                            else:
-                                console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, aim_location_names[aim_location_index]))      
+                            genTable()
                     time.sleep(0.3)
                 
                 if cdll.user32.GetAsyncKeyState(self.huntTargetSwitch) & 0x8000:
                     if not data.soldiers:
-                        # print("You are currently not in a round")
-                        console.print(Text("[!] You are currently not in a round", style="bright_black"))
+                        print(Text("[X] You are currently not in a round", style="red"))
                     else:
-                        live.stop()
                         print()
                         name = console.input("[!] [bold bright_white]Enter a name to hunt:")
                         ratios = []
                         for soldier in data.soldiers:
                             ratios += [SequenceMatcher(None, name, soldier.name).ratio()]
                         huntSoldierName = data.soldiers[ratios.index(max(ratios))].name
-                        live.start()
-                        # Print our Layout UI
-                        if self.random_aim_location:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, "Randomized"))
-                        else:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, aim_location_names[aim_location_index]))      
+                        genTable()
                     time.sleep(0.3)
 
                 for soldier in data.soldiers:
@@ -266,41 +267,20 @@ class Aimer:
                     self.autoshoot = not self.autoshoot
                     if self.autoshoot:
                         Thread(target=playsound, args=(os.getcwd() + '/snd/activate.mp3',), daemon=True).start()
-                        self.autoshoot = True
-                        # Print our Layout UI
-                        if self.random_aim_location:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, "Randomized"))
-                        else:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, aim_location_names[aim_location_index]))      
+                        genTable()
                     else:
                         Thread(target=playsound, args=(os.getcwd() + '/snd/deactivate.mp3',), daemon=True).start()
-                        self.autoshoot = False
-                        # Print our Layout UI
-                        if self.random_aim_location:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, "Randomized"))
-                        else:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, aim_location_names[aim_location_index]))      
+                        genTable()
                     time.sleep(0.3)
                     
                 if cdll.user32.GetAsyncKeyState(self.toggle_dodge_Mode) & 0x8000:
                     self.dodgeMode = not self.dodgeMode
                     if self.dodgeMode:
                         Thread(target=playsound, args=(os.getcwd() + '/snd/activate.mp3',), daemon=True).start()
-                        # print("[+] Dodge Activated")
-                        self.dodgeMode = True
-                        # Print our Layout UI
-                        if self.random_aim_location:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, "Randomized"))
-                        else:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, aim_location_names[aim_location_index]))      
+                        genTable()
                     else:
                         Thread(target=playsound, args=(os.getcwd() + '/snd/deactivate.mp3',), daemon=True).start()
-                        self.dodgeMode = False
-                        # Print our Layout UI
-                        if self.random_aim_location:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, "Randomized"))
-                        else:
-                            console.print(layout_ui(self.autoshoot, self.autoscope, self.dodgeMode, keepTarget, self.fov, self.distance_limit, huntMode, huntSoldierName, aim_location_names[aim_location_index]))      
+                        genTable()
                     time.sleep(0.3)
 
                 if self.lastSoldier != 0:
@@ -381,12 +361,12 @@ class Aimer:
                             # print("Exception", sys.exc_info()[0])
                             continue
                     status = "[%s] " % aim_location_names[aim_location_index]
-                    
                     if self.lastSoldier != 0:
                         if self.autoscope:
                             pressed = True
                             pressedCounter = 0
                             mouse.press(Button.right)
+                            
                         if self.lastSoldierObject.name != "": 
                             name = self.lastSoldierObject.name
                             if self.lastSoldierObject.clan != "":
@@ -402,10 +382,13 @@ class Aimer:
                             pressedCounter = 0
                             pressed = False
                     if not huntMode:
-                        console.print("%-50s" % status, end="\r")
+                        print("[bright_black]\[status][/bright_black] [bold bright_white]Running[/bold bright_white]", flush=True, end="\r")
+                        # print("%-50s" % status, end="\r")
                     if huntMode and huntSoldierName is not None:
-                        print("Current Hunt: ", "[%s]%s" % (huntSoldier.clan, huntSoldier.name), "Distance: ", round(self.FindDistance(huntSoldier.transform[3][0], huntSoldier.transform[3][1], huntSoldier.transform[3][2],
-                                        data.mytransform[3][0], data.mytransform[3][1], data.mytransform[3][2]), 1), end="\r")
+                        print(f"[!] Current Hunt: [bold bright_white][{huntSoldier.clan}]{huntSoldier.name}[/bold bright_white], Distance: [bold bright_white]{round(self.FindDistance(huntSoldier.transform[3][0], huntSoldier.transform[3][1], huntSoldier.transform[3][2], data.mytransform[3][0], data.mytransform[3][1], data.mytransform[3][2]), 1)}[/bold]", end="\r", flush=True)
+                        
+                        # print("[!] Current Hunt: ", "[%s]%s" % (huntSoldier.clan, huntSoldier.name), "Distance: ", round(self.FindDistance(huntSoldier.transform[3][0], huntSoldier.transform[3][1], huntSoldier.transform[3][2],
+                        #                 data.mytransform[3][0], data.mytransform[3][1], data.mytransform[3][2]), 1), end="\r", flush=True)
                 if pressedL:
                     if self.autoshoot:
                         mouse.release(Button.left)
@@ -431,7 +414,8 @@ class Aimer:
                                 if not self.closestSoldier.occluded:  
                                     mouse.press(Button.left)
                             pressedL = True
-                            time.sleep(0.001)    
+                            time.sleep(0.001)
+
 
     def calcAim(self, data, Soldier):
 
