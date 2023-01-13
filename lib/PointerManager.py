@@ -51,7 +51,7 @@ class PointerManager():
 
     def GetObfuscationMgr(self):
         api._cache_en = False
-        print("[+] Searching for ObfuscationMgr...")
+        # print("[+] Searching for ObfuscationMgr...")
         addr = -1
         OM = 0
         ss = StackAccess(self.pHandle, self.mem[offsets.PROTECTED_THREAD].read_uint32(0))
@@ -70,7 +70,7 @@ class PointerManager():
 
             if (OM > 0): break
         ss.close()
-        print("[+] Found ObfuscationMgr @ 0x%08x " % (OM))
+        # print("[+] Found ObfuscationMgr @ 0x%08x " % (OM))
         api._cache_en = True
         return OM
 
@@ -108,7 +108,7 @@ class PointerManager():
                 if (testptr):
                     if (TestDx11Secret(self, testptr)):
                         if (testptr != offsets.Dx11Secret):
-                            print("[+] Found Dx11 key scraping GPU mem @ 0x%x" % (offsets.GPUMemPtr + offset))
+                            # print("[+] Found Dx11 key scraping GPU mem @ 0x%x" % (offsets.GPUMemPtr + offset))
                             offsets.Dx11Secret = testptr
                             api._cache_en = True
                             return offsets.Dx11Secret
@@ -119,7 +119,7 @@ class PointerManager():
             addr = -1
             OM = 0
             i = 0
-            print("[+] Locating initial Dx11 key location, please wait...", flush=True)
+            # print("[+] Locating initial Dx11 key location, please wait...", flush=True)
             while (1):
                 addr = -1
                 buf = ss.read()
@@ -131,8 +131,8 @@ class PointerManager():
                     if (TestDx11Secret(self, testptr)):
                         if (testptr != offsets.Dx11Secret):
                             offsets.GPUMemPtr = gpumem & 0xFFFFFFFFFFFFFC00
-                            print("[+] Found Initial Dx11 key scraping GPU mem @ 0x%x" % (offsets.GPUMemPtr),
-                                  flush=True)
+                            # print("[+] Found Initial Dx11 key scraping GPU mem @ 0x%x" % (offsets.GPUMemPtr),
+                                #   flush=True)
                             offsets.Dx11Secret = testptr
                             api._cache_en = True
                             ss.close()
@@ -151,13 +151,13 @@ class PointerManager():
 
         if ((Dx11EncBuffer != 0) and (offsets.Dx11EncBuffer != Dx11EncBuffer)):
             self.GetDx11Secret()
-            print("[+] Dynamic key loaded, root key set to 0x%x" % (offsets.Dx11Secret))
+            # print("[+] Dynamic key loaded, root key set to 0x%x" % (offsets.Dx11Secret))
             offsets.Dx11EncBuffer = Dx11EncBuffer
             offsets.CryptMode = 1
         elif (offsets.CryptMode == 0):
             if ((DecFunc == offsets.OBFUS_MGR_DEC_FUNC) and (Dx11EncBuffer != 0)):
                 self.GetDx11Secret()
-                print("[+] Dynamic key loaded, retrieving key...")
+                # print("[+] Dynamic key loaded, retrieving key...")
                 offsets.Dx11EncBuffer = Dx11EncBuffer
                 offsets.CryptMode = 1
         elif (offsets.CryptMode == 1):
