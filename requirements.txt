@@ -1,4 +1,6 @@
+numpy==1.24.1
 playsound==1.2.2
+PyAutoGUI==0.9.53
 PyDirectInput==1.0.4
 pygame==2.1.2
 pynput==1.7.6
